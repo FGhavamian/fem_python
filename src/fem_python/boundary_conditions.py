@@ -2,7 +2,7 @@ import numpy as np
 
 
 def apply_neuman_boundary_condition():
-    force_vec = np.array([0, 1])
+    force_vec = np.array([0, 0, 1])
     return force_vec
 
 

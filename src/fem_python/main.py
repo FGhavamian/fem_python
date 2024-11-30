@@ -1,20 +1,23 @@
 import numpy as np
 
-# make force vector (apply neuman boundary condition)
-force_vec = np.array([0, 1])
+from fem_python.stiffness_matrix import make_stiffness_matrix
+from fem_python.boundary_conditions import (
+    apply_neuman_boundary_condition,
+    apply_dirichlet_boundary_condition,
+)
+from fem_python.solver import solve
 
 # make stiffness vector
-stiffness_mat = np.array([[1, -1], [-1, 1]])
+stiffness_mat = make_stiffness_matrix()
+
+# apply neuman boundary condition
+force_vec = apply_neuman_boundary_condition()
 
 # apply dirichlet boundary condition
-stiffness_mat[0, 1:] = 0
-stiffness_mat[1:, 0] = 0
-stiffness_mat[0, 0] = 1
-
-force_vec[0] = 0
+stiffness_mat, force_vec = apply_dirichlet_boundary_condition(stiffness_mat, force_vec)
 
 # solve for displacement vector
-u = np.linalg.solve(stiffness_mat, force_vec)
+displacement_vec = solve(stiffness_mat, force_vec)
 
 # output solution
-print(u)
+print(displacement_vec)

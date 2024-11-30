@@ -22,7 +22,21 @@ def make_stiffness_matrix():
     for e in range(config.num_elements):
         element_stiffness = element_elasticity_module * element_area / element_length
 
-        element_stiffness_mat = element_stiffness * np.array([[1, -1], [-1, 1]])
+        # Note that the shape function has the shape of 1x2.
+        # 1 is the dimentionality of the model (1D model)
+        # and 2 is the number of nodes in the element. 1D linear element has 2 nodes.
+        b = np.array([[1, -1]])
+
+        # the jacobian allows us to transform values from a "naturial" coordinate to "physical" coordinate
+        jacobian = element_length / 2
+
+        # Gaussian integration has two components, location and weight.
+        # For a 1D element, since the derivateive of shape function b is constant, the location is irrelevant
+        gaussian_weight = 2
+
+        element_stiffness_mat = (
+            element_stiffness * np.dot(b.T, b) * jacobian * gaussian_weight
+        )
 
         # The location of the first element is at nodes 0:1, 0:1 in the global stiffness matrix
         # second element: 1:2, 1:2

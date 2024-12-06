@@ -2,28 +2,32 @@ import numpy as np
 
 from fem_python import config
 from fem_python.shape_functions import get_shape_function
+from fem_python.mesh import FEMMesh
 
 
-def make_stiffness_matrix():
-    element_elasticity_module = config.bar_elasticity_module
-    element_area = config.bar_area
-
-    # two elements, then length of each is 1/2
-    # three elements, then length of each is 1/3
-    # and so on ...
-    element_length = config.bar_length / config.num_elements
-
-    stiffness_mat = np.zeros((config.num_nodes, config.num_nodes))
+def make_stiffness_matrix(fem_mesh: FEMMesh):
+    stiffness_mat = np.zeros((fem_mesh.num_nodes, fem_mesh.num_nodes))
 
     # This process is called matrix assembly. We essentially add element stiffness matrices to
     # their appropriate location in the global stiffness matrix.
     for e in range(config.num_elements):
+
+        # Note that attributes of each element can possibly be unique
+        # for this reason, it is common to extract them while looping through elements
+        element_length = fem_mesh.element_length
+        element_elasticity_module = config.bar_elasticity_module
+        element_area = config.bar_area
+
+        element_nodes = fem_mesh.element_to_nodes_mapping[e]
+        node_coords = [
+            fem_mesh.node_coordinates[element_nodes[0]],
+            fem_mesh.node_coordinates[element_nodes[1]],
+        ]
+
         element_stiffness = element_elasticity_module * element_area / element_length
 
-        element_nodes = np.array([e * element_length, (e + 1) * element_length])
-
         ShapeFunction = get_shape_function()
-        shape_function = ShapeFunction(element_nodes)
+        shape_function = ShapeFunction(node_coords)
         b = shape_function.evaluate_b_at(0)
         jacob = shape_function.evaluate_jacob_at(0)
 
@@ -42,4 +46,4 @@ def make_stiffness_matrix():
 
 if __name__ == "__main__":
     # quick test
-    print(make_stiffness_matrix())
+    print(make_stiffness_matrix(FEMMesh()))

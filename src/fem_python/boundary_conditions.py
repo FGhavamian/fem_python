@@ -1,12 +1,10 @@
 import numpy as np
 
-from fem_python import config
+from fem_python.mesh import FEMMesh
 
 
-def apply_neuman_boundary_condition():
-    number_of_nodes = config.num_elements + 1
-
-    force_vec = np.zeros((number_of_nodes,))
+def apply_neuman_boundary_condition(fem_mesh: FEMMesh):
+    force_vec = np.zeros((fem_mesh.num_nodes,))
 
     # Note that the external force is applied to the end of the bar
     # The end of the bar coincides with the last node

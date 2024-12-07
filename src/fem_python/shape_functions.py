@@ -22,7 +22,8 @@ class ShapeFunction(ABC):
         pass
 
     def evaluate_jacob_at(self, point):
-        return self._deriv_n_at(point).dot(self.nodes)[0]
+        deriv_n = self._deriv_n_at(point)
+        return deriv_n.dot(self.nodes)[0]
 
 
 class LinearShapeFunction(ShapeFunction):
@@ -44,8 +45,25 @@ class LinearShapeFunction(ShapeFunction):
         return inv_jacob * deriv_n
 
 
-class QuadShapeFunction:
-    pass
+class QuadShapeFunction(ShapeFunction):
+    def __init__(self, nodes):
+        super().__init__(nodes)
+
+    @staticmethod
+    def evaluate_n_at(point):
+        return np.array(
+            [[0.5 * point * (point - 1), 1 - point**2, 0.5 * point * (point + 1)]]
+        )
+
+    @staticmethod
+    def _deriv_n_at(point):
+        return np.array([[point - 0.5, -2 * point, point + 0.5]])
+
+    def evaluate_b_at(self, point):
+        jacob = self.evaluate_jacob_at(point)
+        inv_jacob = 1 / jacob
+        deriv_n = self._deriv_n_at(point)
+        return inv_jacob * deriv_n
 
 
 def get_shape_function():
@@ -57,4 +75,4 @@ def get_shape_function():
 
 
 if __name__ == "__main__":
-    print(LinearShapeFunction([1, 2]).evaluate_jacob_at(1))
+    print(QuadShapeFunction([0, 0.5, 1]).evaluate_jacob_at(0.5))

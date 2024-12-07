@@ -25,5 +25,5 @@ def apply_dirichlet_boundary_condition(stiffness_mat, force_vec):
 
 if __name__ == "__main__":
     # quick test
-    force_vec = apply_neuman_boundary_condition()
+    force_vec = apply_neuman_boundary_condition(FEMMesh())
     print(force_vec)

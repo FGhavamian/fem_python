@@ -3,43 +3,46 @@ import numpy as np
 from fem_python import config
 from fem_python.shape_functions import get_shape_function
 from fem_python.mesh import FEMMesh
+from fem_python.integration import get_gauus_integration_setting
 
 
 def make_stiffness_matrix(fem_mesh: FEMMesh):
+    # Integration points are used to integrate stiffness matrices.
+    # Stiffness matrix consists of polynomial shap functions. Ideally,
+    # we would like to have a number of integration points that solve for the
+    # integral exactly.
+    integration_points = get_gauus_integration_setting(
+        num_int_points=fem_mesh.num_integration_points_needed
+    )
+
     stiffness_mat = np.zeros((fem_mesh.num_nodes, fem_mesh.num_nodes))
 
-    # This process is called matrix assembly. We essentially add element stiffness matrices to
-    # their appropriate location in the global stiffness matrix.
     for e in range(config.num_elements):
+        for integration_point in integration_points:
+            # Note that attributes of each element can possibly be unique
+            # for this reason, it is common to extract them while looping through elements
+            element_elasticity_module = config.bar_elasticity_module
+            element_area = config.bar_area
 
-        # Note that attributes of each element can possibly be unique
-        # for this reason, it is common to extract them while looping through elements
-        element_length = fem_mesh.element_length
-        element_elasticity_module = config.bar_elasticity_module
-        element_area = config.bar_area
+            node_coords = fem_mesh.get_node_coords_for_element(e)
 
-        element_nodes = fem_mesh.element_to_nodes_mapping[e]
-        node_coords = [
-            fem_mesh.node_coordinates[element_nodes[0]],
-            fem_mesh.node_coordinates[element_nodes[1]],
-        ]
+            element_stiffness = element_elasticity_module * element_area
 
-        element_stiffness = element_elasticity_module * element_area / element_length
+            ShapeFunction = get_shape_function()
+            shape_function = ShapeFunction(node_coords)
 
-        ShapeFunction = get_shape_function()
-        shape_function = ShapeFunction(node_coords)
-        b = shape_function.evaluate_b_at(0)
-        jacob = shape_function.evaluate_jacob_at(0)
+            b = shape_function.evaluate_b_at(integration_point.location)
+            jacob = shape_function.evaluate_jacob_at(integration_point.location)
 
-        # Gaussian integration has two components, location and weight.
-        # For a 1D element, since the derivateive of shape function b is constant, the location is irrelevant
-        gaussian_weight = 2
+            element_stiffness_mat = (
+                element_stiffness * np.dot(b.T, b) * jacob * integration_point.weight
+            )
 
-        element_stiffness_mat = (
-            element_stiffness * np.dot(b.T, b) * jacob * gaussian_weight
-        )
+            # This process is called matrix assembly. We essentially add element stiffness matrices to
+            # their appropriate location in the global stiffness matrix.
+            element_nodes = fem_mesh.element_to_nodes_mapping[e]
 
-        stiffness_mat[e : e + 2, e : e + 2] += element_stiffness_mat
+            stiffness_mat[np.ix_(element_nodes, element_nodes)] += element_stiffness_mat
 
     return stiffness_mat
 
@@ -47,3 +50,4 @@ def make_stiffness_matrix(fem_mesh: FEMMesh):
 if __name__ == "__main__":
     # quick test
     print(make_stiffness_matrix(FEMMesh()))
+    # make_stiffness_matrix(FEMMesh())

@@ -5,10 +5,13 @@ import numpy as np
 from fem_python import config
 
 
-class ShapeFunction(ABC):
-    def __init__(self, nodes):
-        self.nodes = nodes
+class Point:
+    def __init__(self, xi, eta):
+        self.xi = xi
+        self.eta = eta
 
+
+class ShapeFunction(ABC):
     @abstractmethod
     def evaluate_n_at():
         pass
@@ -18,61 +21,104 @@ class ShapeFunction(ABC):
         pass
 
     @abstractmethod
-    def _deriv_n_at():
+    def evaluate_jacob_determinant_at(self):
+        """Note that in 2D setting the jacobian is a 2x2 matrix.
+        Let's say:
+            x = sum_i^n N_i x_i
+            y = sum_i^n N_i y_i
+
+        Then the differential of dx, dy becomes
+            x = sum_i^n frac{partial N_i}{partial xi} dxi x_i + frac{partial N_i}{partial eta} deta x_i
+            y = sum_i^n frac{partial N_i}{partial xi} dxi y_i + frac{partial N_i}{partial eta} deta y_i
+
+        In the matrix from
+            [dx, dy] = jacobian [dxi deta]
+
+        Where jacobian is
+            [[sum_i^n frac{partial N_i}{partial xi} x_i, frac{partial N_i}{partial xi} y_i],
+             [sum_i^n frac{partial N_i}{partial eta} x_i, frac{partial N_i}{partial eta} y_i]]
+        """
         pass
 
-    def evaluate_jacob_at(self, point):
-        deriv_n = self._deriv_n_at(point)
-        return deriv_n.dot(self.nodes)[0]
 
-
-class LinearShapeFunction(ShapeFunction):
+class Q4ShapeFunction(ShapeFunction):
     def __init__(self, nodes):
-        super().__init__(nodes)
+        """
+        Args:
+            nodes (np.array): nodes should have the format of nx2. n is the number of nodes in the element and 2 is due to 2D model.
+                              the nodes should be in the counter-clockwise order. Otherwise jacobian computation becomes faulty.
+        """
+        self.nodes = nodes
 
-    @staticmethod
-    def evaluate_n_at(point):
-        return np.array([[point - 0.5, point + 0.5]])
+    def evaluate_n_at(self, int_point: Point):
+        n_mat, _ = self._get_shape_functions_and_their_derivatives(int_point)
+        return n_mat
 
-    @staticmethod
-    def _deriv_n_at(point):
-        return np.array([[-0.5, 0.5]])
+    def evaluate_b_at(self, int_point: Point):
+        jacobian = self._evaluate_jacob_at(point)
+        inv_jacob = np.linalg.inv(jacobian)
 
-    def evaluate_b_at(self, point):
-        jacob = self.evaluate_jacob_at(point)
-        inv_jacob = 1 / jacob
-        deriv_n = self._deriv_n_at(point)
-        return inv_jacob * deriv_n
+        _, dn_mat = self._get_shape_functions_and_their_derivatives(int_point)
 
+        return inv_jacob.dot(dn_mat)
 
-class QuadShapeFunction(ShapeFunction):
-    def __init__(self, nodes):
-        super().__init__(nodes)
+    def evaluate_jacob_determinant_at(self, int_point: Point):
+        jacobian = self.evaluate_jacob_at(point)
+        return np.linalg.det(jacobian)
 
-    @staticmethod
-    def evaluate_n_at(point):
-        return np.array(
-            [[0.5 * point * (point - 1), 1 - point**2, 0.5 * point * (point + 1)]]
+    def _evaluate_jacob_at(self, int_point: Point):
+        _, dn_mat = self._get_shape_functions_and_their_derivatives(int_point)
+
+        jacobian = dn_mat.dot(self.nodes)
+        return jacobian
+
+    def _get_shape_functions_and_their_derivatives(self, point: Point):
+
+        # Note that the shape function matrix has two rows and four columns.
+        # Each column is associated with a node. Each row is associated with x or y direction.
+        # For instance, the value at (1,0) is the shape function of the second node associated with
+        # the displacement (or force) in the x direction
+
+        n1 = 0.25 * (1 - point.xi) * (1 - point.eta)
+        n2 = 0.25 * (1 + point.xi) * (1 - point.eta)
+        n3 = 0.25 * (1 + point.xi) * (1 + point.eta)
+        n4 = 0.25 * (1 - point.xi) * (1 + point.eta)
+
+        n_mat = np.array([[n1, n2, n3, n4], [n1, n2, n3, n4]])
+
+        dn1_dxi = -0.25 * (1 - point.eta)
+        dn1_deta = -0.25 * (1 - point.xi)
+        dn2_dxi = 0.25 * (1 - point.eta)
+        dn2_deta = -0.25 * (1 + point.xi)
+        dn3_dxi = 0.25 * (1 + point.eta)
+        dn3_deta = 0.25 * (1 + point.xi)
+        dn4_dxi = -0.25 * (1 + point.eta)
+        dn4_deta = 0.25 * (1 - point.xi)
+
+        dn_mat = np.array(
+            [
+                [dn1_dxi, dn2_dxi, dn3_dxi, dn4_dxi],
+                [dn1_deta, dn2_deta, dn3_deta, dn4_deta],
+            ]
         )
 
-    @staticmethod
-    def _deriv_n_at(point):
-        return np.array([[point - 0.5, -2 * point, point + 0.5]])
-
-    def evaluate_b_at(self, point):
-        jacob = self.evaluate_jacob_at(point)
-        inv_jacob = 1 / jacob
-        deriv_n = self._deriv_n_at(point)
-        return inv_jacob * deriv_n
+        return n_mat, dn_mat
 
 
 def get_shape_function():
-    if config.element_type == "linear":
-        return LinearShapeFunction
-
-    if config.element_type == "quad":
-        return QuadShapeFunction
+    if config.element_type == "Q4":
+        return Q4ShapeFunction
 
 
 if __name__ == "__main__":
-    print(QuadShapeFunction([0, 0.5, 1]).evaluate_jacob_at(0.5))
+    point = Point(0, 0)
+
+    nodes = np.array(
+        [
+            [0, 0],
+            [5, 0],
+            [5, 5],
+            [0, 5],
+        ]
+    )
+    print(Q4ShapeFunction(nodes).evaluate_b_at(point))

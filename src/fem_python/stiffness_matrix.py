@@ -4,6 +4,7 @@ from fem_python import config
 from fem_python.shape_functions import get_shape_function
 from fem_python.mesh import FEMMesh
 from fem_python.integration import get_gauus_integration_setting
+from fem_python.material_model import get_elastic_stiffness_matrix
 
 
 def make_stiffness_matrix(fem_mesh: FEMMesh):
@@ -19,23 +20,22 @@ def make_stiffness_matrix(fem_mesh: FEMMesh):
 
     for e in range(config.num_elements):
         for integration_point in integration_points:
-            # Note that attributes of each element can possibly be unique
-            # for this reason, it is common to extract them while looping through elements
-            element_elasticity_module = config.bar_elasticity_module
-            element_area = config.bar_area
+            element_stiffness = get_elastic_stiffness_matrix()
 
             node_coords = fem_mesh.get_node_coords_for_element(e)
-
-            element_stiffness = element_elasticity_module * element_area
-
             ShapeFunction = get_shape_function()
             shape_function = ShapeFunction(node_coords)
 
-            b = shape_function.evaluate_b_at(integration_point.location)
-            jacob = shape_function.evaluate_jacob_at(integration_point.location)
+            b = shape_function.evaluate_b_at(integration_point.point)
+            jacob_det = shape_function.evaluate_jacob_determinant_at(
+                integration_point.point
+            )
 
             element_stiffness_mat = (
-                element_stiffness * np.dot(b.T, b) * jacob * integration_point.weight
+                element_stiffness
+                * np.dot(b.T, b)
+                * jacob_det
+                * integration_point.weight
             )
 
             # This process is called matrix assembly. We essentially add element stiffness matrices to

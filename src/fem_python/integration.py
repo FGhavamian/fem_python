@@ -14,8 +14,7 @@ class IntegrationPoint:
         return f"xi={self.point.xi}, eta={self.point.eta}, weigth={self.weight}"
 
 
-def get_gauus_integration_setting(num_int_points) -> List[IntegrationPoint]:
-
+def get_gauss_integration_setting(num_int_points) -> List[IntegrationPoint]:
     if num_int_points == 1:
         integration_points = [IntegrationPoint(Point(xi=0, eta=0), weight=2)]
 
@@ -30,4 +29,5 @@ def get_gauus_integration_setting(num_int_points) -> List[IntegrationPoint]:
     return integration_points
 
 
-print(get_gauus_integration_setting(2))
+if __name__ == "__main__":
+    print(get_gauss_integration_setting(2))

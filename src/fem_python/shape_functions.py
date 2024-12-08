@@ -55,15 +55,37 @@ class Q4ShapeFunction(ShapeFunction):
         return n_mat
 
     def evaluate_b_at(self, int_point: Point):
-        jacobian = self._evaluate_jacob_at(point)
+        jacobian = self._evaluate_jacob_at(int_point)
         inv_jacob = np.linalg.inv(jacobian)
 
-        _, dn_mat = self._get_shape_functions_and_their_derivatives(int_point)
+        _, dn_dxi_mat = self._get_shape_functions_and_their_derivatives(int_point)
 
-        return inv_jacob.dot(dn_mat)
+        dn_dx_mat = inv_jacob.dot(dn_dxi_mat)
+
+        # The B matrix is a 3x8 matrix.
+        # The reason is that B matrix is designed to be multiplied with the displacement vector of nodes
+        # and produce the strain vector [epsilon_xx, epsilon_yy, epsilon_xy]. That's why it has 3 rows.
+        dn1_dx = dn_dx_mat[0, 0]
+        dn1_dy = dn_dx_mat[1, 0]
+        dn2_dx = dn_dx_mat[0, 1]
+        dn2_dy = dn_dx_mat[1, 1]
+        dn3_dx = dn_dx_mat[0, 2]
+        dn3_dy = dn_dx_mat[1, 2]
+        dn4_dx = dn_dx_mat[0, 3]
+        dn4_dy = dn_dx_mat[1, 3]
+
+        b_mat = np.array(
+            [
+                [dn1_dx, 0, dn2_dx, 0, dn3_dx, 0, dn4_dx, 0],
+                [0, dn1_dy, 0, dn2_dy, 0, dn3_dy, 0, dn4_dy],
+                [dn1_dy, dn1_dx, dn2_dy, dn2_dx, dn3_dy, dn3_dx, dn4_dy, dn4_dx],
+            ]
+        )
+
+        return b_mat
 
     def evaluate_jacob_determinant_at(self, int_point: Point):
-        jacobian = self.evaluate_jacob_at(point)
+        jacobian = self._evaluate_jacob_at(int_point)
         return np.linalg.det(jacobian)
 
     def _evaluate_jacob_at(self, int_point: Point):
@@ -73,7 +95,6 @@ class Q4ShapeFunction(ShapeFunction):
         return jacobian
 
     def _get_shape_functions_and_their_derivatives(self, point: Point):
-
         # Note that the shape function matrix has two rows and four columns.
         # Each column is associated with a node. Each row is associated with x or y direction.
         # For instance, the value at (1,0) is the shape function of the second node associated with
@@ -95,19 +116,19 @@ class Q4ShapeFunction(ShapeFunction):
         dn4_dxi = -0.25 * (1 + point.eta)
         dn4_deta = 0.25 * (1 - point.xi)
 
-        dn_mat = np.array(
+        dn_dxi_mat = np.array(
             [
                 [dn1_dxi, dn2_dxi, dn3_dxi, dn4_dxi],
                 [dn1_deta, dn2_deta, dn3_deta, dn4_deta],
             ]
         )
 
-        return n_mat, dn_mat
+        return n_mat, dn_dxi_mat
 
 
-def get_shape_function():
+def get_shape_function(nodes):
     if config.element_type == "Q4":
-        return Q4ShapeFunction
+        return Q4ShapeFunction(nodes)
 
 
 if __name__ == "__main__":

@@ -4,5 +4,7 @@ plane_stress = False
 
 element_type = "Q4"
 mesh_file_path = "meshes/1d_bar.msh"
+right_boundary_node_tag = 11
+left_boundary_node_tag = 12
 
 dofs_per_node = 2

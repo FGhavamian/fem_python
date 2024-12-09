@@ -4,36 +4,46 @@ from fem_python import config
 
 
 class FEMMesh:
-    """The 2D mesh of a 1d bar looks like this:
-    3---4---5
-    | 0 | 1 |
-    0---1---2
-
-    the height is 1. And the lengths is 1. Let's say the depth is also 1.
-    """
 
     def __init__(self):
         mesh = self._load_msh_file()
 
-        self.node_coordinates = mesh.points
-        self.num_dofs = len(self.node_coordinates) * config.dofs_per_node
+        # self.node_coordinates = mesh.points
+        # self.num_dofs = len(self.node_coordinates) * config.dofs_per_node
 
-        self.element_to_nodes_mapping = self._get_element_to_nodes_mapping(mesh)
+        # self.element_to_nodes_mapping = self._get_element_to_nodes_mapping(mesh)
 
-        print(mesh.cell_data_dict["gmsh:physical"])
+        # print(self.element_to_nodes_mapping)
+        # print(dir(mesh))
+        # print(mesh.cell_data)
+        # print(mesh.cell_data_dict["gmsh:physical"])
+        print(dir(mesh.cells[0]))
+        print(mesh.cells[0].data)
 
-        print(self.element_to_nodes_mapping)
-
-        # self.boundary_nodes_on_the_right = self._get_boundary_nodes_on_the_right()
+        # self.boundary_nodes_on_the_right = self._get_boundary_nodes()
         # self.boundary_nodes_on_the_left = self._get_boundary_nodes_on_the_left()
 
-        self.element_depths = self._get_elements_depths()
-        self.num_integration_points_needed = self._get_num_integration_points_needed()
+        # self.element_depths = self._get_elements_depths()
+        # self.num_integration_points_needed = self._get_num_integration_points_needed()
+
+    @property
+    def node_coordinates(self):
+        return self.mesh.points
+
+    @property
+    def element_to_nodes_mapping(self):
+        for cell in self.mesh.cells:
+            if cell.dim == 2:
+                return cell.data
 
     def get_node_coords_for_element(self, e):
         element_nodes = self.element_to_nodes_mapping[e]
         node_coords = [self.node_coordinates[node] for node in element_nodes]
         return node_coords
+
+    def get_dof_for_node(self, n):
+        #
+        return [2 * n, 2 * n + 1]
 
     def _load_msh_file(self):
         return meshio.read(config.mesh_file_path)
@@ -88,11 +98,13 @@ class FEMMesh:
     def _get_elements_depths(self):
         return 1
 
-    def _get_boundary_nodes_on_the_left(self):
-        return [0, 3]
+    def _get_boundary_nodes(self, mesh):
+        line_nodes = mesh.cell_data_dict["gmsh:physical"]["line"]
 
-    def _get_boundary_nodes_on_the_right(self):
-        return [2, 5]
+        right_boundary_nodes = []
+        left_boundary_nodes = []
+        # for node in line_nodes:
+        # if node ==
 
 
 if __name__ == "__main__":

@@ -1,3 +1,5 @@
+import meshio
+
 from fem_python import config
 
 
@@ -11,20 +13,30 @@ class FEMMesh:
     """
 
     def __init__(self):
-        self.num_nodes = self._get_num_nodes()
-        self.num_dofs = self.num_nodes * 2  # 2D model
+        mesh = self._load_msh_file()
+
+        self.node_coordinates = mesh.points
+        self.num_dofs = len(self.node_coordinates) * config.dofs_per_node
+
+        self.element_to_nodes_mapping = self._get_element_to_nodes_mapping(mesh)
+
+        print(mesh.cell_data_dict["gmsh:physical"])
+
+        print(self.element_to_nodes_mapping)
+
+        # self.boundary_nodes_on_the_right = self._get_boundary_nodes_on_the_right()
+        # self.boundary_nodes_on_the_left = self._get_boundary_nodes_on_the_left()
+
         self.element_depths = self._get_elements_depths()
-        self.element_to_nodes_mapping = self._assemble_element_to_node()
-        self.node_coordinates = self._assemble_node_coordinates()
         self.num_integration_points_needed = self._get_num_integration_points_needed()
-        self.node_to_dof_mapping = self._make_node_to_dof_mapping()
-        self.boundary_nodes_on_the_right = self._get_boundary_nodes_on_the_right()
-        self.boundary_nodes_on_the_left = self._get_boundary_nodes_on_the_left()
 
     def get_node_coords_for_element(self, e):
         element_nodes = self.element_to_nodes_mapping[e]
         node_coords = [self.node_coordinates[node] for node in element_nodes]
         return node_coords
+
+    def _load_msh_file(self):
+        return meshio.read(config.mesh_file_path)
 
     def _get_num_integration_points_needed(self):
         """Integration points are used to integrate stiffness matrices.
@@ -37,14 +49,10 @@ class FEMMesh:
         """
         return 2
 
-    def _get_num_nodes(self):
-        return 6
-        # if config.element_type == "linear":
-        #     num_nodes = config.num_elements + 1
-        # if config.element_type == "quad":
-        #     num_nodes = 3 + 2 * (config.num_elements - 1)
-
-        # return num_nodes
+    def _get_element_to_nodes_mapping(self, mesh):
+        for cell in mesh.cells:
+            if cell.dim == 2:
+                return cell.data
 
     def _assemble_element_to_node(self):
         element_to_node = {0: [0, 1, 4, 3], 1: [1, 2, 5, 4]}
@@ -77,13 +85,6 @@ class FEMMesh:
 
         return node_coords
 
-    def _make_node_to_dof_mapping(self):
-        node_dof_mapping = {}
-        for node in range(self.num_nodes):
-            node_dof_mapping[node] = [2 * node, 2 * node + 1]
-
-        return node_dof_mapping
-
     def _get_elements_depths(self):
         return 1
 
@@ -96,8 +97,3 @@ class FEMMesh:
 
 if __name__ == "__main__":
     mesh = FEMMesh()
-
-    print(mesh.num_nodes)
-    print(mesh.element_to_nodes_mapping)
-    print(mesh.node_coordinates)
-    print(mesh.node_to_dof_mapping)

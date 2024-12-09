@@ -34,9 +34,12 @@ gmsh.model.geo.mesh.setRecombine(2, s)
 
 gmsh.model.geo.synchronize()
 
-gmsh.model.addPhysicalGroup(1, [l_r], name="right_boundary")
-gmsh.model.addPhysicalGroup(1, [l_l], name="left_boundary")
-gmsh.model.addPhysicalGroup(2, [s], name="suraface")
+# Note that meshio (the library that we use to read this mesh), doesn't read name argument below.
+# For this reason, we have to assign tags to the physical groups.
+# We use these tags to identify physical groups when reading the mesh.
+gmsh.model.addPhysicalGroup(1, [l_r], tag=11, name="right_boundary")
+gmsh.model.addPhysicalGroup(1, [l_l], tag=12, name="left_boundary")
+gmsh.model.addPhysicalGroup(2, [s], tag=1, name="suraface")
 
 gmsh.model.mesh.generate(2)
 

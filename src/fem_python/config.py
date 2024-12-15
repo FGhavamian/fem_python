@@ -4,7 +4,9 @@ plane_stress = False
 
 element_type = "Q4"
 mesh_file_path = "meshes/1d_bar.msh"
+
 right_boundary_node_tag = 11
 left_boundary_node_tag = 12
+uniform_force_at_right_boundary = [0, 1]
 
-dofs_per_node = 2
+num_integration_points = 2

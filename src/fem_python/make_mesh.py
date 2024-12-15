@@ -21,11 +21,12 @@ l_l = gmsh.model.geo.addLine(p_tl, p_bl)
 cl = gmsh.model.geo.addCurveLoop([l_b, l_r, l_t, l_l])
 s = gmsh.model.geo.addPlaneSurface([cl])
 
-num_elements = 3
-gmsh.model.geo.mesh.setTransfiniteCurve(l_t, num_elements)
-gmsh.model.geo.mesh.setTransfiniteCurve(l_b, num_elements)
-gmsh.model.geo.mesh.setTransfiniteCurve(l_l, 3)
-gmsh.model.geo.mesh.setTransfiniteCurve(l_r, 3)
+num_elements_x = 10
+num_elements_y = 3
+gmsh.model.geo.mesh.setTransfiniteCurve(l_t, num_elements_x)
+gmsh.model.geo.mesh.setTransfiniteCurve(l_b, num_elements_x)
+gmsh.model.geo.mesh.setTransfiniteCurve(l_l, num_elements_y)
+gmsh.model.geo.mesh.setTransfiniteCurve(l_r, num_elements_y)
 
 
 gmsh.model.geo.mesh.setTransfiniteSurface(s)

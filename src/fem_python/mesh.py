@@ -13,7 +13,9 @@ class FEMMesh:
 
         self.connectivity_matrix = mesh.cells_dict["quad"]
 
-        self.boundary_nodes = self._get_boundary_nodes(mesh)
+        self.boundary_connectivity_matrices = self._get_boundary_connectivity_matrices(
+            mesh
+        )
 
         self.num_nodes = len(self.node_coords)
         self.num_elements = len(self.connectivity_matrix)
@@ -21,24 +23,28 @@ class FEMMesh:
     def _load_msh_file(self):
         return meshio.read(config.mesh_file_path)
 
-    def _get_boundary_nodes(self, mesh):
+    def _get_boundary_connectivity_matrices(self, mesh):
         lines_physical_tags = mesh.cell_data_dict["gmsh:physical"]["line"]
 
         line_connectivity = mesh.cells_dict["line"]
-        boundary_nodes = {"left": [], "right": []}
+        boundary_connectivity_matrices = {"left": [], "right": []}
 
         for n in range(len(line_connectivity)):
             if lines_physical_tags[n] == 12:
-                boundary_nodes["left"].append(line_connectivity[n])
+                boundary_connectivity_matrices["left"].append(line_connectivity[n])
             elif lines_physical_tags[n] == 11:
-                boundary_nodes["right"].append(line_connectivity[n])
+                boundary_connectivity_matrices["right"].append(line_connectivity[n])
 
-        boundary_nodes["left"] = np.array(boundary_nodes["left"])
-        boundary_nodes["right"] = np.array(boundary_nodes["right"])
+        boundary_connectivity_matrices["left"] = np.array(
+            boundary_connectivity_matrices["left"]
+        )
+        boundary_connectivity_matrices["right"] = np.array(
+            boundary_connectivity_matrices["right"]
+        )
 
-        return boundary_nodes
+        return boundary_connectivity_matrices
 
 
 if __name__ == "__main__":
     mesh = FEMMesh()
-    print(mesh.boundary_nodes)
+    print(mesh.boundary_connectivity_matrices)

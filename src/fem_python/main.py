@@ -27,11 +27,22 @@ stiffness_mat, force_vec = apply_dirichlet_boundary_condition(
 displacement_vec = solve(stiffness_mat, force_vec)
 
 # output solution
-dofs_x = []
-dofs_y = []
-for node in range(fem_mesh.num_nodes):
-    dofs_x.append(fem_mesh.node_to_dof_mapping[node][0])
-    dofs_y.append(fem_mesh.node_to_dof_mapping[node][1])
+import pandas as pd
 
-print(f"displacement in x direction: {displacement_vec[dofs_x]}")
-print(f"displacement in y direction: {displacement_vec[dofs_y]}")
+results = {"x": [], "y": [], "ux": [], "uy": [], "fx": [], "fy": []}
+
+for node in range(fem_mesh.num_nodes):
+    dof_x = 2 * node
+    dof_y = 2 * node + 1
+
+    x, y = fem_mesh.node_coords[node]
+
+    results["x"].append(x)
+    results["y"].append(y)
+    results["ux"].append(displacement_vec[dof_x])
+    results["uy"].append(displacement_vec[dof_y])
+    results["fx"].append(force_vec[dof_x])
+    results["fy"].append(force_vec[dof_y])
+
+
+print(pd.DataFrame(results).sort_values(by="y"))

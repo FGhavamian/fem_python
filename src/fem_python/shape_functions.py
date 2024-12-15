@@ -64,6 +64,11 @@ class L2ShapFunction(ShapeFunction):
 
     def evaluate_jacob_determinant_at(self, int_point: Point):
         jacobian = self._evaluate_jacob_at(int_point)
+
+        # When the linear element is defined in the 2D space, the jacobian becomes rectangular.
+        # We cannot compute jacobian for a rectangular matrix. Instead we consider what the determinant of
+        # Jacobian was used for. It was essentially a measure of incremental difference between the element volume
+        # (in this case length), in physical space and that of the isoparametric space.
         return np.sqrt(jacobian[0] ** 2 + jacobian[1] ** 2)
 
     def _evaluate_jacob_at(self, int_point: Point):

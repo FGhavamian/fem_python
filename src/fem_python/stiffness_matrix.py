@@ -13,18 +13,30 @@ def make_stiffness_matrix(fem_mesh: FEMMesh):
     # we would like to have a number of integration points that solve for the
     # integral exactly.
     integration_points = get_gauss_integration_setting(
-        num_int_points=fem_mesh.num_integration_points_needed
+        num_int_points=config.num_integration_points
     )
 
-    stiffness_mat = np.zeros((fem_mesh.num_dofs, fem_mesh.num_dofs))
+    # The problem we are considering has two degrees of freedom (ux, uy).
+    # It essentially means that we allow each node to move in the x and y direction.
+    # Note than an FEM model can have many more degrees of freedom, based on the physics of the problem
+    num_dofs = fem_mesh.num_nodes * 2
+    stiffness_mat = np.zeros((num_dofs, num_dofs))
 
-    for e in range(config.num_elements):
+    for e in range(fem_mesh.num_elements):
         for integration_point in integration_points:
             element_stiffness = get_elastic_stiffness_matrix()
 
-            node_coords = fem_mesh.get_node_coords_for_element(e)
-            shape_function = get_shape_function(node_coords)
+            # The FEM mesh is defined by a tables of node coordinates and a connectivity matrix.
+            # Here we use the connectivity matrix to the get nodes associated with an element.
+            # We then extract coordinates of each node from the node coordinates table
+            nodes = fem_mesh.connectivity_matrix[e]
+            node_coords = []
+            for node in nodes:
+                node_coord = fem_mesh.node_coords[node]
+                node_coords.append(node_coord)
+            node_coords = np.array(node_coords)
 
+            shape_function = get_shape_function(node_coords, config.element_type)
             b = shape_function.evaluate_b_at(integration_point.point)
             jacob_det = shape_function.evaluate_jacob_determinant_at(
                 integration_point.point
@@ -36,12 +48,9 @@ def make_stiffness_matrix(fem_mesh: FEMMesh):
                 * integration_point.weight
             )
 
-            # This process is called matrix assembly. We essentially add element stiffness matrices to
-            # their appropriate location in the global stiffness matrix.
-            element_nodes = fem_mesh.element_to_nodes_mapping[e]
             dofs = []
-            for node in element_nodes:
-                dofs += fem_mesh.node_to_dof_mapping[node]
+            for node in nodes:
+                dofs += [2 * node, 2 * node + 1]
 
             stiffness_mat[np.ix_(dofs, dofs)] += element_stiffness_mat
 

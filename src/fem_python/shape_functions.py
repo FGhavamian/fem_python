@@ -41,6 +41,60 @@ class ShapeFunction(ABC):
         pass
 
 
+class L2ShapFunction(ShapeFunction):
+    def __init__(self, nodes):
+        self.nodes = nodes
+
+    def evaluate_n_at(self, int_point: Point):
+        n_mat, _ = self._get_shape_functions_and_their_derivatives(int_point)
+
+        n_mat = np.array(
+            [
+                [n_mat[0], 0, n_mat[1], 0],
+                [0, n_mat[0], 0, n_mat[1]],
+            ]
+        )
+
+        return n_mat
+
+    def evaluate_b_at(self, int_point: Point):
+        raise NotImplementedError(
+            "B matrix is 2D for a line element is not implemented"
+        )
+
+    def evaluate_jacob_determinant_at(self, int_point: Point):
+        jacobian = self._evaluate_jacob_at(int_point)
+
+        # When the linear element is defined in the 2D space, the jacobian becomes rectangular.
+        # We cannot compute jacobian for a rectangular matrix. Instead we consider what the determinant of
+        # Jacobian was used for. It was essentially a measure of incremental difference between the element volume
+        # (in this case length), in physical space and that of the isoparametric space.
+        return np.sqrt(jacobian[0] ** 2 + jacobian[1] ** 2)
+
+    def _evaluate_jacob_at(self, int_point: Point):
+        _, dn_mat = self._get_shape_functions_and_their_derivatives(int_point)
+        jacobian = dn_mat.dot(self.nodes)
+        return jacobian
+
+    def _get_shape_functions_and_their_derivatives(self, point: Point):
+        # Note that the shape function matrix has two rows and four columns.
+        # Each column is associated with a node. Each row is associated with x or y direction.
+        # For instance, the value at (1,0) is the shape function of the second node associated with
+        # the displacement (or force) in the x direction
+
+        n1 = 0.5 * (1 - point.xi)
+        n2 = 0.5 * (1 + point.xi)
+
+        n_mat = np.array([n1, n2])
+
+        dn1_dxi = -0.5
+        dn2_dxi = 0.5
+
+        dn_dxi_mat = np.array([dn1_dxi, dn2_dxi])
+
+        return n_mat, dn_dxi_mat
+
+
 class Q4ShapeFunction(ShapeFunction):
     def __init__(self, nodes):
         """
@@ -52,6 +106,14 @@ class Q4ShapeFunction(ShapeFunction):
 
     def evaluate_n_at(self, int_point: Point):
         n_mat, _ = self._get_shape_functions_and_their_derivatives(int_point)
+
+        n_mat = np.array(
+            [
+                [n_mat[0], 0, n_mat[1], 0, n_mat[2], 0, n_mat[3], 0],
+                [0, n_mat[0], 0, n_mat[1], 0, n_mat[2], 0, n_mat[3]],
+            ]
+        )
+
         return n_mat
 
     def evaluate_b_at(self, int_point: Point):
@@ -105,7 +167,7 @@ class Q4ShapeFunction(ShapeFunction):
         n3 = 0.25 * (1 + point.xi) * (1 + point.eta)
         n4 = 0.25 * (1 - point.xi) * (1 + point.eta)
 
-        n_mat = np.array([[n1, n2, n3, n4], [n1, n2, n3, n4]])
+        n_mat = np.array([n1, n2, n3, n4])
 
         dn1_dxi = -0.25 * (1 - point.eta)
         dn1_deta = -0.25 * (1 - point.xi)
@@ -126,9 +188,12 @@ class Q4ShapeFunction(ShapeFunction):
         return n_mat, dn_dxi_mat
 
 
-def get_shape_function(nodes):
-    if config.element_type == "Q4":
+def get_shape_function(nodes, element_type):
+    if element_type == "Q4":
         return Q4ShapeFunction(nodes)
+
+    elif element_type == "L2":
+        return L2ShapFunction(nodes)
 
 
 if __name__ == "__main__":
@@ -142,4 +207,8 @@ if __name__ == "__main__":
             [0, 5],
         ]
     )
-    print(Q4ShapeFunction(nodes).evaluate_b_at(point))
+    # print(Q4ShapeFunction(nodes).evaluate_b_at(point))
+    # print(Q4ShapeFunction(nodes)._evaluate_jacob_at(point))
+    print(
+        L2ShapFunction(np.array([[0, 0], [1, 0]])).evaluate_jacob_determinant_at(point)
+    )

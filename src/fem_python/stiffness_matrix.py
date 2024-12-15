@@ -36,7 +36,7 @@ def make_stiffness_matrix(fem_mesh: FEMMesh):
                 node_coords.append(node_coord)
             node_coords = np.array(node_coords)
 
-            shape_function = get_shape_function(node_coords)
+            shape_function = get_shape_function(node_coords, config.element_type)
             b = shape_function.evaluate_b_at(integration_point.point)
             jacob_det = shape_function.evaluate_jacob_determinant_at(
                 integration_point.point

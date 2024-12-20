@@ -20,6 +20,8 @@ class FEMMesh:
         self.num_nodes = len(self.node_coords)
         self.num_elements = len(self.connectivity_matrix)
 
+        self.cells = mesh.cells
+
     def _load_msh_file(self):
         return meshio.read(config.mesh_file_path)
 

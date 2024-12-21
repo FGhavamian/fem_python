@@ -1,13 +1,11 @@
-import numpy as np
-
-from fem_python.stiffness_matrix import make_stiffness_matrix
-from fem_python.boundary_conditions import (
+from fem_python.fem.stiffness_matrix import make_stiffness_matrix
+from fem_python.fem.boundary_conditions import (
     apply_neuman_boundary_condition,
     apply_dirichlet_boundary_condition,
 )
-from fem_python.mesh import FEMMesh
-from fem_python.solver import solve
-from fem_python.postprocess import write_to_vtk
+from fem_python.mesh.mesh import FEMMesh
+from fem_python.fem.solver import solve
+from fem_python.postprocess.postprocess import write_to_vtk
 
 # we run this once at the begining of the FEM code
 # then we use mesh information during the runtime

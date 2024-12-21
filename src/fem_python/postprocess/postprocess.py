@@ -1,6 +1,6 @@
 import meshio
 
-from fem_python.mesh import FEMMesh
+from fem_python.mesh.mesh import FEMMesh
 
 
 def write_to_vtk(displacement_vec, force_vec, fem_mesh: FEMMesh):

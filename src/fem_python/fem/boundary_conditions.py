@@ -1,8 +1,9 @@
 import numpy as np
 
 from fem_python.mesh import FEMMesh
-from fem_python.shape_functions import get_shape_function
-from fem_python.integration import get_gauss_integration_setting
+
+from fem_python.fem.shape_functions import get_shape_function
+from fem_python.fem.integration import get_gauss_integration_setting
 from fem_python import config
 
 

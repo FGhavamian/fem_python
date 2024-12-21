@@ -2,8 +2,6 @@ from abc import ABC, abstractmethod
 
 import numpy as np
 
-from fem_python import config
-
 
 class Point:
     def __init__(self, xi, eta):

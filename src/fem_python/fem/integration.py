@@ -2,7 +2,7 @@ from typing import List
 
 import numpy as np
 
-from fem_python.shape_functions import Point
+from fem_python.fem.shape_functions import Point
 
 
 class IntegrationPoint:

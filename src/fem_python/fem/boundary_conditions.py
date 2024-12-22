@@ -62,6 +62,14 @@ def apply_dirichlet_boundary_condition(fem_mesh: FEMMesh, stiffness_mat, force_v
     if config.uniform_displacement_at_right_boundary:
         elements = fem_mesh.boundary_connectivity_matrices["right"]
 
+        # The procedure of applying prescribed displacement is as follows:
+        # Let's say prescribed displacements are applied at dofs_p.
+        # Then, the system of equations can be written as following blocks:
+        # [[k_bb , kbp], [k_pb , kpp]] [u_b, u_p] = [f_b, f_p]
+        # if u_p is set to U, then system of equation can be written as:
+        # [[k_bb , 0], [k_pb , 1]] [u_b, u_p] = [f_b, U]
+        # Note that by solving the above equation, u_p becomes U.
+        # The benefit of this formulation is that we do not change the dimnesion of the stiffness matrix.
         dofs_ux = []
         for nodes in elements:
             for node in nodes:

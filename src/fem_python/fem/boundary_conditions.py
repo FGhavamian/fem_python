@@ -56,6 +56,23 @@ def apply_neuman_boundary_condition(fem_mesh: FEMMesh):
 
 
 def apply_dirichlet_boundary_condition(fem_mesh: FEMMesh, stiffness_mat, force_vec):
+
+    # If config.uniform_displacement_at_right_boundary is None, then we do not apply any
+    # boundary conditions. Note that there is a difference between None and zero
+    if config.uniform_displacement_at_right_boundary:
+        elements = fem_mesh.boundary_connectivity_matrices["right"]
+
+        dofs_ux = []
+        for nodes in elements:
+            for node in nodes:
+                dof_x = 2 * node
+                dofs_ux.append(dof_x)
+
+        stiffness_mat[np.ix_(dofs_ux)] = 0
+        stiffness_mat[np.ix_(dofs_ux), np.ix_(dofs_ux)] = 1
+
+        force_vec[np.ix_(dofs_ux)] = config.uniform_displacement_at_right_boundary
+
     # Here we constrain the nodes on the left side of the bar in the x direction.
     # But we avoid constraining all of the nodes in the y direction. This is to simulate the behavior of a 1D bar.
     # In a 1D bar, the nodes are free to move in the y direction.

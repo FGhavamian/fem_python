@@ -1,10 +1,10 @@
 import numpy as np
 
-from fem_python import config
 from fem_python.fem.shape_functions import get_shape_function
 from fem_python.mesh.mesh import FEMMesh
 from fem_python.fem.integration import get_gauss_integration_setting
 from fem_python.fem.material_model import get_elastic_stiffness_matrix
+from fem_python import config
 
 
 def make_stiffness_matrix(fem_mesh: FEMMesh):

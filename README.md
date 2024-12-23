@@ -6,3 +6,6 @@
 1. uv venv 
 2. uv sync 
 3. uv run src/fem_python/main.py
+
+## Visualization
+Use paraview to open vtk files. Refer to paraview manual for further elaboration.

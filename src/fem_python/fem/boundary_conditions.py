@@ -59,9 +59,17 @@ def apply_dirichlet_boundary_condition(fem_mesh: FEMMesh, stiffness_mat, force_v
 
     # If config.uniform_displacement_at_right_boundary is None, then we do not apply any
     # boundary conditions. Note that there is a difference between None and zero
-    if config.uniform_displacement_at_right_boundary:
+    if config.uniform_displacement_at_right_boundary_x:
         elements = fem_mesh.boundary_connectivity_matrices["right"]
 
+        # The procedure of applying prescribed displacement is as follows:
+        # Let's say prescribed displacements are applied at dofs_p.
+        # Then, the system of equations can be written as following blocks:
+        # [[k_bb , kbp], [k_pb , kpp]] [u_b, u_p] = [f_b, f_p]
+        # if u_p is set to U, then system of equation can be written as:
+        # [[k_bb , 0], [k_pb , 1]] [u_b, u_p] = [f_b, U]
+        # Note that by solving the above equation, u_p becomes U.
+        # The benefit of this formulation is that we do not change the dimnesion of the stiffness matrix.
         dofs_ux = []
         for nodes in elements:
             for node in nodes:
@@ -71,7 +79,7 @@ def apply_dirichlet_boundary_condition(fem_mesh: FEMMesh, stiffness_mat, force_v
         stiffness_mat[np.ix_(dofs_ux)] = 0
         stiffness_mat[np.ix_(dofs_ux), np.ix_(dofs_ux)] = 1
 
-        force_vec[np.ix_(dofs_ux)] = config.uniform_displacement_at_right_boundary
+        force_vec[np.ix_(dofs_ux)] = config.uniform_displacement_at_right_boundary_x
 
     # Here we constrain the nodes on the left side of the bar in the x direction.
     # But we avoid constraining all of the nodes in the y direction. This is to simulate the behavior of a 1D bar.

@@ -6,7 +6,11 @@ from fem_python.fem import (
     apply_neuman_boundary_condition,
 )
 from fem_python.mesh.mesh import FEMMesh
-from fem_python.postprocess.postprocess import write_to_vtk
+from fem_python.postprocess.postprocess import (
+    write_to_vtk,
+    compute_stress_and_strain_at_nodes,
+    compute_displacement_at_nodes,
+)
 
 # we run this once at the begining of the FEM code
 # then we use mesh information during the runtime
@@ -26,4 +30,12 @@ stiffness_mat, force_vec = apply_dirichlet_boundary_condition(
 # solve for displacement vector
 displacement_vec = solve(stiffness_mat, force_vec)
 
-write_to_vtk(displacement_vec, force_vec, fem_mesh)
+stress_vec, strain_vec = compute_stress_and_strain_at_nodes(displacement_vec, fem_mesh)
+displacement_vec = compute_displacement_at_nodes(displacement_vec, fem_mesh)
+
+vecs_dict = {
+    "stress": stress_vec,
+    "strain": strain_vec,
+    "displacement": displacement_vec,
+}
+write_to_vtk(vecs_dict, fem_mesh)

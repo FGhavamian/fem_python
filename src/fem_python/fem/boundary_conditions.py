@@ -4,10 +4,9 @@ from fem_python.mesh import FEMMesh
 
 from fem_python.fem.shape_functions import get_shape_function
 from fem_python.fem.integration import get_gauss_integration_setting
-from fem_python import config
 
 
-def apply_neuman_boundary_condition(fem_mesh: FEMMesh):
+def apply_neuman_boundary_condition(fem_mesh: FEMMesh, force_step):
     num_dofs = fem_mesh.num_nodes * 2
     force_vec = np.zeros((num_dofs,))
 
@@ -34,7 +33,7 @@ def apply_neuman_boundary_condition(fem_mesh: FEMMesh):
             integration_point.point
         )
 
-        unform_force_vec = np.array(config.uniform_force_at_right_boundary)
+        unform_force_vec = np.array(force_step)
 
         element_force_vec = (
             np.dot(n.T, unform_force_vec) * jacob_det * integration_point.weight
@@ -55,11 +54,13 @@ def apply_neuman_boundary_condition(fem_mesh: FEMMesh):
     return force_vec
 
 
-def apply_dirichlet_boundary_condition(fem_mesh: FEMMesh, stiffness_mat, force_vec):
+def apply_dirichlet_boundary_condition(
+    fem_mesh: FEMMesh, stiffness_mat, force_vec, displacement_step_x
+):
 
-    # If config.uniform_displacement_at_right_boundary is None, then we do not apply any
-    # boundary conditions. Note that there is a difference between None and zero
-    if config.uniform_displacement_at_right_boundary_x:
+    # If config.uniform_displacement_at_right_boundary_x is zero, then we do not apply any
+    # boundary conditions.
+    if displacement_step_x > 1e-3:
         elements = fem_mesh.boundary_connectivity_matrices["right"]
 
         # The procedure of applying prescribed displacement is as follows:
@@ -79,7 +80,7 @@ def apply_dirichlet_boundary_condition(fem_mesh: FEMMesh, stiffness_mat, force_v
         stiffness_mat[np.ix_(dofs_ux)] = 0
         stiffness_mat[np.ix_(dofs_ux), np.ix_(dofs_ux)] = 1
 
-        force_vec[np.ix_(dofs_ux)] = config.uniform_displacement_at_right_boundary_x
+        force_vec[np.ix_(dofs_ux)] = displacement_step_x
 
     # Here we constrain the nodes on the left side of the bar in the x direction.
     # But we avoid constraining all of the nodes in the y direction. This is to simulate the behavior of a 1D bar.

@@ -7,7 +7,9 @@ from fem_python.fem.material_model import get_elastic_stiffness_matrix
 from fem_python import config
 
 
-def make_stiffness_matrix(fem_mesh: FEMMesh):
+def make_stiffness_matrix_and_internal_force_vector(
+    fem_mesh: FEMMesh, displacement_vec
+):
     # Integration points are used to integrate stiffness matrices.
     # Stiffness matrix consists of polynomial shap functions. Ideally,
     # we would like to have a number of integration points that solve for the
@@ -21,6 +23,7 @@ def make_stiffness_matrix(fem_mesh: FEMMesh):
     # Note than an FEM model can have many more degrees of freedom, based on the physics of the problem
     num_dofs = fem_mesh.num_nodes * 2
     stiffness_mat = np.zeros((num_dofs, num_dofs))
+    internal_force_vec = np.zeros((num_dofs,))
 
     for e in range(fem_mesh.num_elements):
         for integration_point in integration_points:
@@ -52,9 +55,17 @@ def make_stiffness_matrix(fem_mesh: FEMMesh):
             for node in nodes:
                 dofs += [2 * node, 2 * node + 1]
 
-            stiffness_mat[np.ix_(dofs, dofs)] += element_stiffness_mat
+            element_displacement = displacement_vec[np.ix_(dofs)]
+            element_strain = np.dot(b, element_displacement)
+            element_stress = np.dot(element_stiffness, element_strain)
+            element_internal_force = (
+                np.dot(b.T, element_stress) * jacob_det * integration_point.weight
+            )
 
-    return stiffness_mat
+            stiffness_mat[np.ix_(dofs, dofs)] += element_stiffness_mat
+            internal_force_vec[np.ix_(dofs)] += element_internal_force
+
+    return stiffness_mat, internal_force_vec
 
 
 if __name__ == "__main__":

@@ -6,18 +6,42 @@ from fem_python.fem import (
     solve,
     apply_dirichlet_boundary_condition,
     apply_neuman_boundary_condition,
+    get_material_model,
 )
+from fem_python.fem.integration import get_gauss_integration_setting
 from fem_python.mesh.mesh import FEMMesh
 from fem_python.postprocess import (
     write_to_vtk,
     compute_stress_and_strain_at_nodes,
     compute_displacement_at_nodes,
 )
+
 from fem_python import config
 
 # we run this once at the begining of the FEM code
 # then we use mesh information during the runtime
 fem_mesh = FEMMesh()
+
+# Note each element, in principle, is allowed to have a different material model.
+# We compute stress and stiffeness matrix for each integration point in each element.
+# That is why we initiate a material model for integration point.
+materials = []
+for _ in range(fem_mesh.num_elements):
+    material_integration_point = []
+
+    num_integration_points = len(
+        get_gauss_integration_setting(config.num_integration_points)
+    )
+    for _ in range(num_integration_points):
+        material_integration_point.append(
+            get_material_model(
+                "linear_elastic",
+                elasticity_module=config.bar_elasticity_module,
+                poission_ratio=config.bar_poission_ratio,
+            )
+        )
+
+    materials.append(material_integration_point)
 
 # We apply the external force or displacement at uniform proportions.
 # For instance, if the presribed displacement is 1 and the number of time steps is 10,
@@ -45,7 +69,7 @@ force_displacement_right_boundary = {"force": [], "displacement": []}
 
 for t in range(config.num_time_steps):
     stiffness_mat, internal_force_vec = make_stiffness_matrix_and_internal_force_vector(
-        fem_mesh, displacement_vec
+        fem_mesh, displacement_vec, materials
     )
 
     force_step += force_step_increment
@@ -78,7 +102,7 @@ for t in range(config.num_time_steps):
         displacement_right_boundary
     )
 
-stress_vec, strain_vec = compute_stress_and_strain_at_nodes(displacement_vec, fem_mesh)
+stress_vec, strain_vec = compute_stress_and_strain_at_nodes(fem_mesh, materials)
 displacement_vec = compute_displacement_at_nodes(displacement_vec, fem_mesh)
 internal_force_vec = compute_displacement_at_nodes(internal_force_vec, fem_mesh)
 

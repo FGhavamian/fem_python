@@ -4,3 +4,4 @@ from .boundary_conditions import (
     apply_neuman_boundary_condition,
     apply_dirichlet_boundary_condition,
 )
+from .material_model import get_material_model

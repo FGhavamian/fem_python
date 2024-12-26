@@ -76,6 +76,4 @@ def make_stiffness_matrix_and_internal_force_vector(
 
 
 if __name__ == "__main__":
-    # quick test
-    print(make_stiffness_matrix(FEMMesh()).shape)
-    # make_stiffness_matrix(FEMMesh())
+    pass

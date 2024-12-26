@@ -1,5 +1,6 @@
 num_time_steps = 10
 
+material_model_name = "linear_elastic"
 bar_elasticity_module = 1
 bar_poission_ratio = 0
 plane_stress = False

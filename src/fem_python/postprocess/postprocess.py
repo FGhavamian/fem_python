@@ -1,14 +1,18 @@
+from typing import List
+
 import numpy as np
 import meshio
 
 from fem_python.fem.shape_functions import get_shape_function
 from fem_python.mesh import FEMMesh
 from fem_python.fem.integration import get_gauss_integration_setting
-from fem_python.fem.material_model import get_elastic_stiffness_matrix
+from fem_python.fem.material_model import AbstractMaterialModel
 from fem_python import config
 
 
-def compute_stress_and_strain_at_nodes(displacement_vec, fem_mesh: FEMMesh):
+def compute_stress_and_strain_at_nodes(
+    fem_mesh: FEMMesh, materials: List[List[AbstractMaterialModel]]
+):
     """We interpolate the stress and strain at the nodes. The reason is that the
     write_to_vtk function expects values at nodes. There should be more accurate ways to
     visualize stress/strain fields.
@@ -28,32 +32,14 @@ def compute_stress_and_strain_at_nodes(displacement_vec, fem_mesh: FEMMesh):
     node_strain = {n: [] for n in range(fem_mesh.num_nodes)}
 
     for e in range(fem_mesh.num_elements):
-        for integration_point in integration_points:
-            element_stiffness = get_elastic_stiffness_matrix()
+        for i, _ in enumerate(integration_points):
+            material = materials[e][i]
 
             nodes = fem_mesh.connectivity_matrix[e]
-            node_coords = []
-            for node in nodes:
-                node_coord = fem_mesh.node_coords[node]
-                node_coords.append(node_coord)
-            node_coords = np.array(node_coords)
-
-            shape_function = get_shape_function(node_coords, config.element_type)
-            b = shape_function.evaluate_b_at(integration_point.point)
-
-            dofs = []
-            for node in nodes:
-                dofs += [2 * node, 2 * node + 1]
-
-            element_displacement_vec = displacement_vec[np.ix_(dofs)]
-            element_strain = np.dot(b, element_displacement_vec)
-
-            element_strain_vec = element_strain
-            element_stress_vec = np.dot(element_stiffness, element_strain)
 
             for node in nodes:
-                node_strain[node].append(element_strain_vec)
-                node_stress[node].append(element_stress_vec)
+                node_strain[node].append(material.strain)
+                node_stress[node].append(material.stress)
 
     stress_vec = np.zeros((fem_mesh.num_nodes, 3))
     strain_vec = np.zeros((fem_mesh.num_nodes, 3))

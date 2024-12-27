@@ -72,16 +72,13 @@ for t in range(config.num_time_steps):
         fem_mesh, displacement_vec, materials
     )
 
-    force_step += force_step_increment
     displacement_step_x += displacement_step_x_increment
 
-    force_vec = apply_neuman_boundary_condition(fem_mesh, force_step)
-
-    stiffness_mat, force_vec = apply_dirichlet_boundary_condition(
-        fem_mesh, stiffness_mat, force_vec, displacement_step_x
+    stiffness_mat, internal_force_vec = apply_dirichlet_boundary_condition(
+        fem_mesh, stiffness_mat, internal_force_vec, displacement_step_x
     )
 
-    displacement_vec = solve(stiffness_mat, force_vec)
+    displacement_vec = solve(stiffness_mat, internal_force_vec)
 
     # Collecting the force and displacement at the right boundary. The force and the displacement vectors on the right boundary
     # are averaged out. This is because the right boundary is made up of multiple nodes. This is again not the most accurate way of
@@ -94,10 +91,10 @@ for t in range(config.num_time_steps):
             dof_x = 2 * node
             dofs_ux.append(dof_x)
 
-    force_right_boundary = np.mean(force_vec[np.ix_(dofs_ux)])
+    internal_force_right_boundary = np.mean(internal_force_vec[np.ix_(dofs_ux)])
     displacement_right_boundary = np.mean(displacement_vec[np.ix_(dofs_ux)])
 
-    force_displacement_right_boundary["force"].append(force_right_boundary)
+    force_displacement_right_boundary["force"].append(internal_force_right_boundary)
     force_displacement_right_boundary["displacement"].append(
         displacement_right_boundary
     )

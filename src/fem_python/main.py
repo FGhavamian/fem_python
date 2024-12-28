@@ -5,7 +5,6 @@ from fem_python.fem import (
     make_stiffness_matrix_and_internal_force_vector,
     solve,
     apply_dirichlet_boundary_condition,
-    apply_neuman_boundary_condition,
     get_material_model,
 )
 from fem_python.fem.integration import get_gauss_integration_setting
@@ -68,23 +67,36 @@ displacement_step_x = 0
 force_displacement_right_boundary = {"force": [], "displacement": []}
 
 for t in range(config.num_time_steps):
-    stiffness_mat, internal_force_vec = make_stiffness_matrix_and_internal_force_vector(
+    for i in range(config.max_num_nr_iterations):
+        if i == 0:
+            displacement_step_x += displacement_step_x_increment
+        else:
+            displacement_step_x = 0
+
+        stiffness_mat, internal_force_vec = (
+            make_stiffness_matrix_and_internal_force_vector(
+                fem_mesh, displacement_vec, materials
+            )
+        )
+
+        stiffness_mat, internal_force_vec = apply_dirichlet_boundary_condition(
+            fem_mesh, stiffness_mat, internal_force_vec, displacement_step_x
+        )
+
+        displacement_vec_correction = solve(stiffness_mat, internal_force_vec)
+        displacement_vec += displacement_vec_correction
+
+        residual_norm = np.linalg.norm(internal_force_vec)
+        print(f"Time step: {t}, Iteration: {i}, Residual: {residual_norm}")
+        if residual_norm < 1e-6:
+            break
+
+    # The internal force that was computed in the last increment is nullified through application of
+    # the boundary condition. The reason is that its values are zero at internal nodes and its values at
+    # boundary nodes are set to zero by the boundary condition. We have to recompute it here.
+    _, internal_force_vec = make_stiffness_matrix_and_internal_force_vector(
         fem_mesh, displacement_vec, materials
     )
-
-    displacement_step_x += displacement_step_x_increment
-
-    stiffness_mat, internal_force_vec = apply_dirichlet_boundary_condition(
-        fem_mesh, stiffness_mat, internal_force_vec, displacement_step_x
-    )
-
-    displacement_vec = solve(stiffness_mat, internal_force_vec)
-
-    # TODO: SOMETHING WRONG HERE!
-    stiffness_mat, tmp = make_stiffness_matrix_and_internal_force_vector(
-        fem_mesh, displacement_vec, materials
-    )
-    print(np.linalg.norm(tmp))
 
     # Collecting the force and displacement at the right boundary. The force and the displacement vectors on the right boundary
     # are averaged out. This is because the right boundary is made up of multiple nodes. This is again not the most accurate way of
@@ -97,7 +109,7 @@ for t in range(config.num_time_steps):
             dof_x = 2 * node
             dofs_ux.append(dof_x)
 
-    internal_force_right_boundary = np.mean(internal_force_vec[np.ix_(dofs_ux)])
+    internal_force_right_boundary = np.sum(internal_force_vec[np.ix_(dofs_ux)])
     displacement_right_boundary = np.mean(displacement_vec[np.ix_(dofs_ux)])
 
     force_displacement_right_boundary["force"].append(internal_force_right_boundary)
@@ -121,6 +133,7 @@ write_to_vtk(vecs_dict, fem_mesh)
 plt.plot(
     force_displacement_right_boundary["displacement"],
     force_displacement_right_boundary["force"],
+    marker="o",
 )
 plt.xlabel("Displacement at right boundary")
 plt.ylabel("Force at right boundary")

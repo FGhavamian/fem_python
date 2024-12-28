@@ -80,6 +80,12 @@ for t in range(config.num_time_steps):
 
     displacement_vec = solve(stiffness_mat, internal_force_vec)
 
+    # TODO: SOMETHING WRONG HERE!
+    stiffness_mat, tmp = make_stiffness_matrix_and_internal_force_vector(
+        fem_mesh, displacement_vec, materials
+    )
+    print(np.linalg.norm(tmp))
+
     # Collecting the force and displacement at the right boundary. The force and the displacement vectors on the right boundary
     # are averaged out. This is because the right boundary is made up of multiple nodes. This is again not the most accurate way of
     # computing the force but, it is quite simple.

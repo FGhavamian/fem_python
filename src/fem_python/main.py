@@ -34,7 +34,7 @@ for _ in range(fem_mesh.num_elements):
     for _ in range(num_integration_points):
         material_integration_point.append(
             get_material_model(
-                "linear_elastic",
+                config.material_model_name,
                 elasticity_module=config.bar_elasticity_module,
                 poission_ratio=config.bar_poission_ratio,
             )
@@ -42,12 +42,9 @@ for _ in range(fem_mesh.num_elements):
 
     materials.append(material_integration_point)
 
-# We apply the external force or displacement at uniform proportions.
+# We apply the prescribed displacement at uniform proportions.
 # For instance, if the presribed displacement is 1 and the number of time steps is 10,
 # then the displacement at each time step will be 0.1.
-force_step_increment = (
-    np.array(config.uniform_force_at_right_boundary) / config.num_time_steps
-)
 displacement_step_x_increment = (
     config.prescribed_displacement_at_right_boundary_x / config.num_time_steps
 )
@@ -58,7 +55,6 @@ displacement_step_x_increment = (
 # none-zero value.
 displacement_vec = np.zeros((fem_mesh.num_nodes * 2,))
 
-force_step = np.zeros_like(force_step_increment)
 displacement_step_x = 0
 
 # It is usually of interest to keep track of a quantity of interest. In the 1D bar problem,
@@ -108,6 +104,7 @@ for t in range(config.num_time_steps):
         for node in nodes:
             dof_x = 2 * node
             dofs_ux.append(dof_x)
+    dofs_ux = list(set(dofs_ux))
 
     internal_force_right_boundary = np.sum(internal_force_vec[np.ix_(dofs_ux)])
     displacement_right_boundary = np.mean(displacement_vec[np.ix_(dofs_ux)])

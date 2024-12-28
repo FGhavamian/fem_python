@@ -63,6 +63,4 @@ def apply_dirichlet_boundary_condition(
 
 
 if __name__ == "__main__":
-    # quick test
-    force_vec = apply_neuman_boundary_condition(FEMMesh())
-    print(force_vec)
+    pass

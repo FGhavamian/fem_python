@@ -1,7 +1,7 @@
-num_time_steps = 3
+num_time_steps = 10
 max_num_nr_iterations = 4
 
-material_model_name = "linear_elastic"
+material_model_name = "nonlinear_elastic"
 bar_elasticity_module = 1
 bar_poission_ratio = 0
 plane_stress = False

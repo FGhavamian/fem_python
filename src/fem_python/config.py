@@ -1,5 +1,5 @@
-num_time_steps = 10
-max_num_nr_iterations = 10
+num_time_steps = 3
+max_num_nr_iterations = 4
 
 material_model_name = "linear_elastic"
 bar_elasticity_module = 1

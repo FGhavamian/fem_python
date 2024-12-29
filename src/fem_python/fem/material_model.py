@@ -85,11 +85,16 @@ class NonelinearElasticMaterialModel(AbstractMaterialModel):
         super().__init__(elasticity_module, poission_ratio)
 
     def update(self, strain):
+        """This is a toy example to test the implementation of a nonlinear material model.
+        The stress is: 0.5 * C * (1 + strain)^2
+        And the stiffness matrix is: C * diag(1 + strain)
+
+        Note that this nonlinearity is so mild, that a linear solver also suffices."""
         self._strain = strain
-        # s = k * e + exp(-e) - 1
-        # ds/de = k - exp(-e)
-        self._stress = np.dot(self.elastic_stiffness, strain) + np.exp(-strain) - 1
-        self._stiffness_matrix = self.elastic_stiffness - np.exp(-strain)
+        self._stress = 0.5 * np.dot(self.elastic_stiffness, np.power(self._strain, 2))
+        self._stiffness_matrix = np.dot(
+            self.elastic_stiffness, np.diag(1 + self._strain)
+        )
 
 
 def get_material_model(material_model_name, **kwargs):

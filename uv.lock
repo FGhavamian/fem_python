@@ -65,7 +65,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "gmsh", specifier = ">=4.13.1" },
-    { name = "matplotlib" },
+    { name = "matplotlib", specifier = ">=3.10.0" },
     { name = "meshio", specifier = ">=5.3.5" },
     { name = "numpy", specifier = ">=2.1.3" },
 ]

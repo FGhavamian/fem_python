@@ -5,7 +5,6 @@ from fem_python import config
 
 
 class FEMMesh:
-
     def __init__(self):
         mesh = self._load_msh_file()
 
@@ -29,13 +28,15 @@ class FEMMesh:
         lines_physical_tags = mesh.cell_data_dict["gmsh:physical"]["line"]
 
         line_connectivity = mesh.cells_dict["line"]
-        boundary_connectivity_matrices = {"left": [], "right": []}
+        boundary_connectivity_matrices = {"left": [], "right": [], "bottom": []}
 
         for n in range(len(line_connectivity)):
             if lines_physical_tags[n] == 12:
                 boundary_connectivity_matrices["left"].append(line_connectivity[n])
             elif lines_physical_tags[n] == 11:
                 boundary_connectivity_matrices["right"].append(line_connectivity[n])
+            elif lines_physical_tags[n] == 13:
+                boundary_connectivity_matrices["bottom"].append(line_connectivity[n])
 
         boundary_connectivity_matrices["left"] = np.array(
             boundary_connectivity_matrices["left"]

@@ -6,6 +6,11 @@ from fem_python.mesh import FEMMesh
 def apply_dirichlet_boundary_condition(
     fem_mesh: FEMMesh, stiffness_mat, force_vec, displacement_step_x
 ):
+    """The constrains for a plate with hole problem is different that of the 1d bar.
+    Since we are only considering a quarter of the plate, we need to apply the boundary conditions
+    in a way that it sattisfies the symmetry conditions. We constaints the left boundary in the x direction.
+    And the bottom boundary in the y direction. The load is applied in the right boundary in the x direction."""
+
     elements = fem_mesh.boundary_connectivity_matrices["right"]
 
     # The procedure of applying prescribed displacement is as follows:
@@ -27,9 +32,6 @@ def apply_dirichlet_boundary_condition(
 
     force_vec[np.ix_(dofs_ux)] = displacement_step_x
 
-    # Here we constrain the nodes on the left side of the bar in the x direction.
-    # But we avoid constraining all of the nodes in the y direction. This is to simulate the behavior of a 1D bar.
-    # In a 1D bar, the nodes are free to move in the y direction.
     elements = fem_mesh.boundary_connectivity_matrices["left"]
 
     for nodes in elements:
@@ -49,15 +51,34 @@ def apply_dirichlet_boundary_condition(
 
             force_vec[dof_x] = 0
 
-    # To simulate the behavior of a 1D bar, we constaint only one node in the y direction.
-    node = elements[0]
-    dof_y = 2 * node + 1
+    elements = fem_mesh.boundary_connectivity_matrices["bottom"]
 
-    stiffness_mat[dof_y, :] = 0
-    stiffness_mat[:, dof_y] = 0
-    stiffness_mat[dof_y, dof_y] = 1
+    for nodes in elements:
+        node_coords = []
+        for node in nodes:
+            node_coord = fem_mesh.node_coords[node]
+            node_coords.append(node_coord)
+        node_coords = np.array(node_coords)
 
-    force_vec[dof_y] = 0
+        for node in nodes:
+            # Note each node has two degrees of freedom. dof_x, dof_y.
+            dof_y = 2 * node + 1
+
+            stiffness_mat[dof_y, :] = 0
+            stiffness_mat[:, dof_y] = 0
+            stiffness_mat[dof_y, dof_y] = 1
+
+            force_vec[dof_y] = 0
+
+    # # To simulate the behavior of a 1D bar, we constaint only one node in the y direction.
+    # node = elements[0]
+    # dof_y = 2 * node + 1
+
+    # stiffness_mat[dof_y, :] = 0
+    # stiffness_mat[:, dof_y] = 0
+    # stiffness_mat[dof_y, dof_y] = 1
+
+    # force_vec[dof_y] = 0
 
     return stiffness_mat, force_vec
 

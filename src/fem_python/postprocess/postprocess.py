@@ -65,7 +65,7 @@ def compute_displacement_at_nodes(displacement_vec, fem_mesh: FEMMesh):
 
 def write_to_vtk(vecs_dict, fem_mesh: FEMMesh):
     meshio.write_points_cells(
-        "outputs/1d_bar.vtk",
+        "outputs/plate_w_hole.vtk",
         fem_mesh.node_coords,
         fem_mesh.cells,
         point_data=vecs_dict,

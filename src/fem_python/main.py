@@ -48,13 +48,6 @@ for _ in range(fem_mesh.num_elements):
 displacement_step_x_increment = (
     config.prescribed_displacement_at_right_boundary_x / config.num_time_steps
 )
-
-# We initiate the displacement vector here because, the function make_stiffness_matrix_and_internal_force_vector
-# requires the displacement vector to compute strain. A the first time step, the displacement vector is zero hence,
-# the strain is zero. After that, the displacement vector is updated at each time step and hence, the strain takes a
-# none-zero value.
-displacement_vec = np.zeros((fem_mesh.num_nodes * 2,))
-
 displacement_step_x = 0
 
 # It is usually of interest to keep track of a quantity of interest. In the 1D bar problem,
@@ -62,16 +55,36 @@ displacement_step_x = 0
 # how the internal force increases as we increase the displacement.
 force_displacement_right_boundary = {"force": [], "displacement": []}
 
+
+# total_displacement_vec is the total displacement vector at time step t.
+# At each time step, increment_displacement_vec is added to the total displacement vector.
+# increment_displacement_vec nonlinearly depend on material property and external force. So,
+# we compute it incrementally using the Newton method. At each Newton iteration,
+# iteration_displacement_vec is added to the increment_displacement_vec until equilibrium is reached,
+# namely the residual becomes effectively zero. Note that we define iteration_displacement_vec here
+# for the sake of clarity.
+total_displacement_vec = np.zeros((fem_mesh.num_nodes * 2,))
+increment_displacement_vec = np.zeros_like(total_displacement_vec)
+iteration_displacement_vec = np.zeros_like(total_displacement_vec)
+
 for t in range(config.num_time_steps):
+
+    # At the begining of each time step, we set increment_displacement_vec to zero
+    # because, the values from the previous time steps are already added to total_displacement_vec
+    increment_displacement_vec.fill(0)
+
     for i in range(config.max_num_nr_iterations):
         if i == 0:
             displacement_step_x += displacement_step_x_increment
         else:
             displacement_step_x = 0
 
+        # Note that the stiffness matrix and the internal vector depend on history until the begining of the time step
+        # and the increment of the displacement. The increment of displacement gives us the increment of strain
+        # which in turn gives us the increment of the stress and the stiffness matrix.
         stiffness_mat, internal_force_vec = (
             make_stiffness_matrix_and_internal_force_vector(
-                fem_mesh, displacement_vec, materials
+                fem_mesh, increment_displacement_vec, materials
             )
         )
 
@@ -79,19 +92,20 @@ for t in range(config.num_time_steps):
             fem_mesh, stiffness_mat, internal_force_vec, displacement_step_x
         )
 
-        displacement_vec_correction = solve(stiffness_mat, internal_force_vec)
-        displacement_vec += displacement_vec_correction
+        iteration_displacement_vec = solve(stiffness_mat, internal_force_vec)
+        increment_displacement_vec += iteration_displacement_vec
 
         residual_norm = np.linalg.norm(internal_force_vec)
         print(f"Time step: {t}, Iteration: {i}, Residual: {residual_norm}")
         if residual_norm < 1e-6:
+            total_displacement_vec += increment_displacement_vec
             break
 
     # The internal force that was computed in the last increment is nullified through application of
     # the boundary condition. The reason is that its values are zero at internal nodes and its values at
     # boundary nodes are set to zero by the boundary condition. We have to recompute it here.
     _, internal_force_vec = make_stiffness_matrix_and_internal_force_vector(
-        fem_mesh, displacement_vec, materials
+        fem_mesh, total_displacement_vec, increment_displacement_vec, materials
     )
 
     # Collecting the force and displacement at the right boundary. The force and the displacement vectors on the right boundary
@@ -107,7 +121,7 @@ for t in range(config.num_time_steps):
     dofs_ux = list(set(dofs_ux))
 
     internal_force_right_boundary = np.sum(internal_force_vec[np.ix_(dofs_ux)])
-    displacement_right_boundary = np.mean(displacement_vec[np.ix_(dofs_ux)])
+    displacement_right_boundary = np.mean(total_displacement_vec[np.ix_(dofs_ux)])
 
     force_displacement_right_boundary["force"].append(internal_force_right_boundary)
     force_displacement_right_boundary["displacement"].append(
@@ -115,13 +129,13 @@ for t in range(config.num_time_steps):
     )
 
 stress_vec, strain_vec = compute_stress_and_strain_at_nodes(fem_mesh, materials)
-displacement_vec = compute_displacement_at_nodes(displacement_vec, fem_mesh)
+total_displacement_vec = compute_displacement_at_nodes(total_displacement_vec, fem_mesh)
 internal_force_vec = compute_displacement_at_nodes(internal_force_vec, fem_mesh)
 
 vecs_dict = {
     "stress": stress_vec,
     "strain": strain_vec,
-    "displacement": displacement_vec,
+    "displacement": total_displacement_vec,
     "internal_force": internal_force_vec,
 }
 

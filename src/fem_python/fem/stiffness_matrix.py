@@ -10,7 +10,9 @@ from fem_python import config
 
 
 def make_stiffness_matrix_and_internal_force_vector(
-    fem_mesh: FEMMesh, displacement_vec, materials: List[List[AbstractMaterialModel]]
+    fem_mesh: FEMMesh,
+    increment_displacement_vec,
+    materials: List[List[AbstractMaterialModel]],
 ):
     # Integration points are used to integrate stiffness matrices.
     # Stiffness matrix consists of polynomial shap functions. Ideally,
@@ -51,8 +53,11 @@ def make_stiffness_matrix_and_internal_force_vector(
             for node in nodes:
                 dofs += [2 * node, 2 * node + 1]
 
-            element_displacement = displacement_vec[np.ix_(dofs)]
-            element_strain = np.dot(b, element_displacement)
+            element_total_displacement = total_displacement_vec[np.ix_(dofs)]
+            element_increment_displacement = increment_displacement_vec[np.ix_(dofs)]
+
+            element_total_strain = np.dot(b, element_total_displacement)
+            element_increment_strain = np.dot(b, element_increment_displacement)
 
             material.update(element_strain)
 

@@ -22,8 +22,8 @@ def make_1dbar_mesh():
     cl = gmsh.model.geo.addCurveLoop([l_b, l_r, l_t, l_l])
     s = gmsh.model.geo.addPlaneSurface([cl])
 
-    num_elements_x = 10
-    num_elements_y = 3
+    num_elements_x = 3
+    num_elements_y = 2
     gmsh.model.geo.mesh.setTransfiniteCurve(l_t, num_elements_x)
     gmsh.model.geo.mesh.setTransfiniteCurve(l_b, num_elements_x)
     gmsh.model.geo.mesh.setTransfiniteCurve(l_l, num_elements_y)
@@ -40,6 +40,7 @@ def make_1dbar_mesh():
     # We use these tags to identify physical groups when reading the mesh.
     gmsh.model.addPhysicalGroup(1, [l_r], tag=11, name="right_boundary")
     gmsh.model.addPhysicalGroup(1, [l_l], tag=12, name="left_boundary")
+    gmsh.model.addPhysicalGroup(1, [l_b], tag=13, name="bottom_boundary")
     gmsh.model.addPhysicalGroup(2, [s], tag=1, name="surface")
 
     gmsh.model.mesh.generate(2)
@@ -101,4 +102,5 @@ def make_plate_w_hole():
 
 
 if __name__ == "__main__":
-    make_plate_w_hole()
+    # make_plate_w_hole()
+    make_1dbar_mesh()

@@ -53,16 +53,12 @@ def make_stiffness_matrix_and_internal_force_vector(
             for node in nodes:
                 dofs += [2 * node, 2 * node + 1]
 
-            element_total_displacement = total_displacement_vec[np.ix_(dofs)]
             element_increment_displacement = increment_displacement_vec[np.ix_(dofs)]
-
-            element_total_strain = np.dot(b, element_total_displacement)
             element_increment_strain = np.dot(b, element_increment_displacement)
 
-            material.update(element_strain)
-
-            element_stiffness = materials[e][i].stiffness_matrix
-            element_stress = materials[e][i].stress
+            element_stiffness, element_stress = material.compute_stress_and_stiffness(
+                element_increment_strain
+            )
 
             element_stiffness_mat = (
                 np.dot(np.dot(b.T, element_stiffness), b)
@@ -76,7 +72,6 @@ def make_stiffness_matrix_and_internal_force_vector(
 
             stiffness_mat[np.ix_(dofs, dofs)] += element_stiffness_mat
             internal_force_vec[np.ix_(dofs)] += element_internal_force
-
     return stiffness_mat, internal_force_vec
 
 

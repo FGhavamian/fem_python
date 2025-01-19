@@ -38,8 +38,8 @@ def compute_stress_and_strain_at_nodes(
             nodes = fem_mesh.connectivity_matrix[e]
 
             for node in nodes:
-                node_strain[node].append(material.strain)
-                node_stress[node].append(material.stress)
+                # node_strain[node].append(material.strain)
+                node_stress[node].append(material.state["stress"])
 
     stress_vec = np.zeros((fem_mesh.num_nodes, 3))
     strain_vec = np.zeros((fem_mesh.num_nodes, 3))

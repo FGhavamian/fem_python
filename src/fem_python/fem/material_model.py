@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from copy import deepcopy
 
 import numpy as np
 
@@ -20,29 +21,22 @@ class AbstractMaterialModel(ABC):
     we implemenet is going to need the elastic stiffness matrix.
     """
 
-    def __init__(self, elasticity_module, poission_ratio):
+    def __init__(self, elasticity_module, poission_ratio, state):
         self.elasticity_module = elasticity_module
         self.poission_ratio = poission_ratio
 
-        self._stiffness_matrix = None
-        self._stress = None
-        self._strain = None
+        self.state = deepcopy(state)
+        self.tmp_state = deepcopy(state)
 
     @abstractmethod
-    def update(self, strain):
+    def compute_stress_and_stiffness(self, increment_strain):
+        """This function should return a tuple, stress vector and the stiffness matrix"""
         pass
 
-    @property
-    def stiffness_matrix(self):
-        return self._stiffness_matrix
-
-    @property
-    def stress(self):
-        return self._stress
-
-    @property
-    def strain(self):
-        return self._strain
+    def save_state(self):
+        # This is a way to deepcopy a dictionary in python
+        # self.state = self.tmp_state copies refrence! This is not what we want
+        self.state = deepcopy(self.tmp_state)
 
     @property
     def elastic_stiffness(self):
@@ -70,31 +64,46 @@ class AbstractMaterialModel(ABC):
 
 class LinearElasticMaterialModel(AbstractMaterialModel):
     def __init__(self, elasticity_module, poission_ratio):
-        super().__init__(elasticity_module, poission_ratio)
+        state = {"stress": np.zeros((3,))}
 
-    def update(self, strain):
-        self._strain = strain
-        self._stiffness_matrix = self.elastic_stiffness
-        self._stress = np.dot(self.elastic_stiffness, self._strain)
+        super().__init__(elasticity_module, poission_ratio, state=state)
+
+    def compute_stress_and_stiffness(self, increment_strain):
+        stress = self.state["stress"]
+        increment_stress = np.dot(self.elastic_stiffness, increment_strain)
+
+        stress += increment_stress
+
+        self.tmp_state["stress"] = stress
+
+        return self.elastic_stiffness, stress
 
 
 class NonelinearElasticMaterialModel(AbstractMaterialModel):
     """This is a toy example to test the implementation of a nonlinear material model."""
 
     def __init__(self, elasticity_module, poission_ratio):
-        super().__init__(elasticity_module, poission_ratio)
+        state = {"stress": np.zeros((3,)), "strain": np.zeros((3,))}
 
-    def update(self, strain):
+        super().__init__(elasticity_module, poission_ratio, state=state)
+
+    def compute_stress_and_stiffness(self, increment_strain):
         """This is a toy example to test the implementation of a nonlinear material model.
-        The stress is: 0.5 * C * (1 + strain)^2
-        And the stiffness matrix is: C * diag(1 + strain)
 
         Note that this nonlinearity is so mild, that a linear solver also suffices."""
-        self._strain = strain
-        self._stress = 0.5 * np.dot(self.elastic_stiffness, np.power(self._strain, 2))
-        self._stiffness_matrix = np.dot(
-            self.elastic_stiffness, np.diag(1 + self._strain)
-        )
+        stress = self.state["stress"]
+        strain = self.state["strain"]
+
+        strain += increment_strain
+
+        stress = np.dot(self.elastic_stiffness, 1 - np.exp(-strain))
+
+        stiffness_matrix = np.dot(self.elastic_stiffness, np.diag(np.exp(-strain)))
+
+        self.tmp_state["stress"] = stress
+        self.tmp_state["strain"] = strain
+
+        return stiffness_matrix, stress
 
 
 def get_material_model(material_model_name, **kwargs):
@@ -114,8 +123,5 @@ if __name__ == "__main__":
     mat = get_material_model(
         "nonlinear_elastic", elasticity_module=1, poission_ratio=0.3
     )
-    mat.update(np.array([1, 2, 3]))
-    print(mat.stiffness_matrix)
-    print(mat.stress)
 
     mat = get_material_model("hyper_elastic", elasticity_module=1, poission_ratio=0.3)
